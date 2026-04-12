@@ -199,7 +199,8 @@ model Assignment {
 
 model Submission {
   id String @id @default(cuid())
-  githubLink String
+  githubLink String?
+  colabLink String?   // only used for ML assignments
   status SubmissionStatus @default(PENDING)
   isMissed Boolean @default(false)
   reviewNote String?
