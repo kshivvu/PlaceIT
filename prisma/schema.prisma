@@ -134,6 +134,7 @@ model User{
   passwordHash String?
   avatarUrl String?
   role Role @default(STUDENT)
+  leetcodeUsername String?
   verificationStatus VerificationStatus @default(UNVERIFIED)
   createdAt DateTime @default(now())
     
@@ -188,7 +189,7 @@ model Assignment {
   batches Batch[] @relation("AssignmentBatches")
 
 
-  submission Submission[]
+  submissions Submission[]
 
   
 
