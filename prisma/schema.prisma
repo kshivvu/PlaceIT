@@ -85,6 +85,7 @@ enum NotificationType {
   VERIFICATION_APPROVED
   VERIFICATION_REJECTED
   VERIFICATION_REQUEST
+  
 }
 
 
@@ -173,7 +174,7 @@ model User{
 
   notifications Notification[]
   
-
+  @@unique([roll , collegeId])
 }
 
 model Assignment {
@@ -216,6 +217,7 @@ model Submission {
   assignmentId String
   assignment Assignment @relation(fields: [assignmentId],references: [id])
 
+  leetcodeVerified  Boolean?  // null = not checked, true = solved, false = not found
 
   reviewedById String?
   reviewedBy User? @relation("SubmissionReviews",fields: [reviewedById],references: [id])

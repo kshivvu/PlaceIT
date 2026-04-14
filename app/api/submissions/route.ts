@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { error } from "console";
 import { prisma } from "@/lib/prisma";
+import { checkLeetcodeProblem } from "@/lib/leetcode";
 
 const bodySchema = z.object({
   assignmentId: z.string(),
@@ -120,14 +121,39 @@ export async function POST(req: NextRequest) {
         currentStatus: existingSubmission.status,
         message: `Cannot submit — current status is ${existingSubmission.status}`,
       },
-      { status: 409},
+      { status: 409 },
     );
   }
+  
+  if (!existingSubmission) {
+    const student = await prisma.user.findUnique({
+    where: { id: studentId },
+  });
+  // After creating the submission for DSA assignments
+  if (assignment.type === "DSA" && student?.leetcodeUsername) {
+    const content = assignment.content as { problems: { url: string }[] };
 
-  if(!existingSubmission){
+    // Check each problem in parallel
+    const results = await Promise.allSettled(
+      content.problems.map((problem) =>
+        checkLeetcodeProblem(student.leetcodeUsername!, problem.url),
+      ),
+    );
+
+    // If ALL problems are solved → verified
+    const allSolved = results.every(
+      (r) => r.status === "fulfilled" && r.value === true,
+    );
+
+    // Update the submission with the result
+    await prisma.submission.update({
+      where: { id: submission.id },
+      data: { leetcodeVerified: allSolved },
+    });
+  }
     await updateStreak(studentId);
   }
-  return NextResponse.json(submission,{status:201})
+  return NextResponse.json(submission, { status: 201 });
 }
 
 // ── STREAK CALCULATION ──────────────────────────────────────
@@ -142,52 +168,50 @@ export async function updateStreak(studentId: string) {
         // Find their most recent submission BEFORE today
         where: {
           submittedAt: {
-            lt: new Date(new Date().setHours(0, 0, 0, 0)) // before today midnight
-          }
+            lt: new Date(new Date().setHours(0, 0, 0, 0)), // before today midnight
+          },
         },
         orderBy: { submittedAt: "desc" },
-        take: 1  // only need the most recent one
-      }
-    }
-  })
+        take: 1, // only need the most recent one
+      },
+    },
+  });
 
-  if (!student) return
+  if (!student) return;
 
   // Check if they already submitted today
-  const todayStart = new Date(new Date().setHours(0, 0, 0, 0))
-  const todayEnd = new Date(new Date().setHours(23, 59, 59, 999))
+  const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+  const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
 
   const submittedToday = await prisma.submission.findFirst({
     where: {
       userId: studentId,
-      submittedAt: { gte: todayStart, lte: todayEnd }
-    }
-  })
+      submittedAt: { gte: todayStart, lte: todayEnd },
+    },
+  });
 
   // If they already submitted today, streak is already counted
-  if (submittedToday) return
+  if (submittedToday) return;
 
-  const lastSubmission = student.submissions[0]
-  let newStreak: number
+  const lastSubmission = student.submissions[0];
+  let newStreak: number;
 
   if (!lastSubmission) {
     // Never submitted before — streak starts at 1
-    newStreak = 1
+    newStreak = 1;
   } else {
-    const lastDate = new Date(lastSubmission.submittedAt)
-    const yesterday = new Date(todayStart)
-    yesterday.setDate(yesterday.getDate() - 1)
+    const lastDate = new Date(lastSubmission.submittedAt);
+    const yesterday = new Date(todayStart);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-    const submittedYesterday =
-      lastDate >= yesterday &&
-      lastDate < todayStart
+    const submittedYesterday = lastDate >= yesterday && lastDate < todayStart;
 
     if (submittedYesterday) {
       // Consecutive day — increment
-      newStreak = student.currentStreak + 1
+      newStreak = student.currentStreak + 1;
     } else {
       // Gap in submissions — reset to 1
-      newStreak = 1
+      newStreak = 1;
     }
   }
 
@@ -197,6 +221,6 @@ export async function updateStreak(studentId: string) {
       currentStreak: newStreak,
       // longestStreak only updates if newStreak beats the record
       longestStreak: Math.max(newStreak, student.longestStreak),
-    }
-  })
+    },
+  });
 }
