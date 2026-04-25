@@ -105,6 +105,7 @@ model College {
   createdAt DateTime @default(now())
   users User[]
   batches Batch[]
+  studentRecords StudentRecord[]
 }
 
 model Batch {
@@ -125,7 +126,18 @@ model Batch {
   @@unique([collegeId,name])
 }
 
+model StudentRecord{
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  batchName String
+  roll String
+  collegeId String
+  college College @relation(fields: [collegeId],references: [id])
+  createdAt DateTime @default(now())
+  @@unique([email,collegeId])
 
+}
 
 model User{
   id String @id @default(cuid())
