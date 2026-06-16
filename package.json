@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node -e \"const fs = require('fs'); fs.rmSync('.next/dev', { recursive: true, force: true }); fs.rmSync('tsconfig.tsbuildinfo', { force: true });\" && next build",
+    "build": "prisma generate && node -e \"const fs = require('fs'); fs.rmSync('.next/dev', { recursive: true, force: true }); fs.rmSync('tsconfig.tsbuildinfo', { force: true });\" && next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma generate"
+    "lint": "eslint"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
