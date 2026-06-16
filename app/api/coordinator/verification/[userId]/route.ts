@@ -2,7 +2,15 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import nodemailer from "nodemailer";
 
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 const verificationActionSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
 });
@@ -54,6 +62,7 @@ export async function PATCH(
   });
   if (action === "APPROVE") {
     let batchId: string | null = null;
+    let batchName:string|null=null;
     if (record) {
       const batch = await prisma.batch.findUnique({
         where: {
@@ -64,6 +73,7 @@ export async function PATCH(
         },
       });
       batchId = batch?.id ?? null;
+      batchName=batch?.id??null
     }
     await prisma.user.update({
       where: { id: userId },
@@ -82,6 +92,19 @@ export async function PATCH(
           "your account has been approved by your coordinator! You now have full access to PlaceIt.",
       },
     });
+
+    await transporter.sendMail({
+        from: `"PlaceIT" <${process.env.GMAIL_USER}>`,
+        to: user.email,
+        subject: "Your verification has suceeded",
+        html: `
+            <h2>You are verfied now</h2>
+            <p>%${user.name}:</p>
+            <h1 style="letter-spacing: 4px">batch name: ${batchName}</h1>
+            <p>You may login with this link</p>
+            <a href="https:localhost:3000/login">Login</a>
+        `
+    })
 
     return NextResponse.json({
       message: "User approved",
@@ -104,6 +127,17 @@ export async function PATCH(
       },
 
     });
+    await transporter.sendMail({
+        from: `"PlaceIT" <${process.env.GMAIL_USER}>`,
+        to: user.email,
+        subject: "Your verification has suceeded",
+        html: `
+            <h2>You are verfied now</h2>
+            <p>%${user.name}:</p>
+            <h1 style="letter-spacing: 4px">batch name: your account has been rejected by your coordinator! Please contact your coordinator.</h1>
+            
+        `
+    })
 
     return NextResponse.json({
         message:"user rejected",
