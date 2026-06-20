@@ -37,7 +37,7 @@ export default auth((req) => {
   // RULE 0 — Logged in but not verified: lock to /pending
   // ============================================================
   if (
-    session &&
+    session?.user &&
     session.user.verificationStatus !== "VERIFIED" &&
     pathname !== "/pending"
   ) {
@@ -45,7 +45,7 @@ export default auth((req) => {
   }
   // RULE — Verified student but no batch assigned
   if (
-    session &&
+    session?.user &&
     session.user.role === "STUDENT" &&
     session.user.verificationStatus === "VERIFIED" &&
     !session.user.batchId &&
@@ -59,10 +59,11 @@ export default auth((req) => {
   if (publicRoutes.includes(pathname)) {
     // But if they're already logged in and visit /, /login or /signup,
     // redirect them to their dashboard — no point showing landing page or login again
-    if (session && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
-      return NextResponse.redirect(
-        new URL(getDashboard(session.user.role), req.url),
-      );
+    if (session?.user?.role && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
+      const dashboardPath = getDashboard(session.user.role);
+      if (dashboardPath !== pathname) {
+        return NextResponse.redirect(new URL(dashboardPath, req.url));
+      }
     }
     return NextResponse.next();
   }
@@ -70,7 +71,7 @@ export default auth((req) => {
   // ============================================================
   // RULE 2 — Not logged in: redirect to login
   // ============================================================
-  if (!session) {
+  if (!session || !session.user) {
     // Remember where they were trying to go
     // After login we'll send them back there
     const loginUrl = new URL("/login", req.url);
@@ -83,11 +84,12 @@ export default auth((req) => {
   // ============================================================
   for (const [route, allowedRoles] of Object.entries(roleRoutes)) {
     if (pathname.startsWith(route)) {
-      if (!allowedRoles.includes(session.user.role)) {
+      if (session.user.role && !allowedRoles.includes(session.user.role)) {
         // They're logged in, just in the wrong place
-        return NextResponse.redirect(
-          new URL(getDashboard(session.user.role), req.url),
-        );
+        const dashboardPath = getDashboard(session.user.role);
+        if (dashboardPath !== pathname) {
+          return NextResponse.redirect(new URL(dashboardPath, req.url));
+        }
       }
     }
   }
