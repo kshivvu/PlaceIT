@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+const middlewareHandler = auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth; // auth object is attached to the request
 
@@ -99,6 +99,16 @@ export default auth((req) => {
   // ============================================================
   return NextResponse.next();
 });
+
+// Wrap the middleware handler with a global try-catch to log crashes and prevent 500 errors
+export default async function middleware(req: any, event: any) {
+  try {
+    return await middlewareHandler(req, event);
+  } catch (err) {
+    console.error("Middleware execution failed:", err);
+    return NextResponse.next();
+  }
+}
 
 // Helper — given a role, where should they land?
 function getDashboard(role: string): string {
