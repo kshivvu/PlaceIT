@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
     const college=await prisma.college.findUnique({
       where:{id:batch?.collegeId}
     })
+     const baseUrl = req.nextUrl.origin;
      await transporter.sendMail({
         from: `"PlaceIT" <${process.env.GMAIL_USER}>`,
         to: user.email,
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
             <h1 style="letter-spacing: 4px">batch name: ${batch?.name}</h1>
             <p>College: ${college}</p>
             <p>You may login with this link</p>
-            <a href="https:localhost:3000/login">Login</a>
+            <a href="${baseUrl}/login">Login</a>
         `
     })
     autoVerified.push(user.email);

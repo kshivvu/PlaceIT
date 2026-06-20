@@ -93,6 +93,7 @@ export async function PATCH(
       },
     });
 
+    const baseUrl = req.nextUrl.origin;
     await transporter.sendMail({
         from: `"PlaceIT" <${process.env.GMAIL_USER}>`,
         to: user.email,
@@ -102,7 +103,7 @@ export async function PATCH(
             <p>%${user.name}:</p>
             <h1 style="letter-spacing: 4px">batch name: ${batchName}</h1>
             <p>You may login with this link</p>
-            <a href="https:localhost:3000/login">Login</a>
+            <a href="${baseUrl}/login">Login</a>
         `
     })
 

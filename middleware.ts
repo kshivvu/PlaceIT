@@ -57,9 +57,9 @@ export default auth((req) => {
   // RULE 1 — Public routes: always let through
   // ============================================================
   if (publicRoutes.includes(pathname)) {
-    // But if they're already logged in and visit /login or /signup,
-    // redirect them to their dashboard — no point showing login again
-    if (session && (pathname === "/login" || pathname === "/signup")) {
+    // But if they're already logged in and visit /, /login or /signup,
+    // redirect them to their dashboard — no point showing landing page or login again
+    if (session && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
       return NextResponse.redirect(
         new URL(getDashboard(session.user.role), req.url),
       );
